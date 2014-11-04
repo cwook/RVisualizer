@@ -7,7 +7,6 @@
 (require 2htdp/universe)
 (require racket/base)
 
-
 (define SONG-LOCATION "C:/tmp/rct2theme.wav")
 
 (define SONG (rs-read/clip SONG-LOCATION 0 (* 44100 10)))
@@ -17,50 +16,16 @@
 (define (both a b) b)
 
 (define (tock w)
-  (both
-   (if (= 0 w) (pstream-queue ps SONG 0) w)
-   (add1 w)))
+  (* 4 (abs (inexact->exact (rs-ith/left SONG (pstream-current-frame ps)))))
+  )
 
 (define (draw w)
   (overlay
-   (beside
-    (draw-helper 0)
-    (draw-helper 1)
-    (draw-helper 2)
-    (draw-helper 3)
-    (draw-helper 4)
-    (draw-helper 5)
-    (draw-helper 6)
-    (draw-helper 7)
-    (draw-helper 8)
-    (draw-helper 10)
-    (draw-helper 11)
-    (draw-helper 12)
-    (draw-helper 13)
-    (draw-helper 14)
-    (draw-helper 15)
-    (draw-helper 16)
-    (draw-helper 17)
-    (draw-helper 18)
-    (draw-helper 19)
-    (draw-helper 20)
-    (draw-helper 21)
-    (draw-helper 22)
-    (draw-helper 23)
-    (draw-helper 24)
-    (draw-helper 25)
-    (draw-helper 26)
-    (draw-helper 27)
-    (draw-helper 28)
-    (draw-helper 29)
-    (draw-helper 30)
-   )
-   (empty-scene 20 200))
+   (triangle (* 200 w) "solid" "black")
+   (empty-scene 200 200))
   )
 
-(define (draw-helper n)
-  (rectangle 1 (* 1000 (abs (rs-ith/left SONG (+ n (pstream-current-frame ps))))) "solid" "black")
-  )
-
-
+(pstream-queue ps SONG 0)
 (big-bang 0 [on-tick tock] [to-draw draw])
+
+
