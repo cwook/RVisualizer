@@ -22,8 +22,6 @@
 (define (both a b) b)
 
 (define (tock w)
-  (begin
-    (print (number->string (/ (- (world-slide-h w) 652) 494)))
  (cond
    [(= 0 (remainder (world-t w) 5))
     (make-world
@@ -39,7 +37,7 @@
      (/ (+ (world-c1now w) (world-c1go w)) 2)
      (world-c1go w)(world-slide-h w)(world-slide-v w)(world-drag? w)(world-c1r w)(world-c1g w)(world-c1b w))
     ]
- )))
+ ))
 
 
 (define (draw w)
@@ -74,7 +72,11 @@
       [(boolean=? true (world-drag? w))
        (cond
          [(and (> x (- 910 250)) (< x (+ 890 250)))
-          (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) x (world-slide-v w) true (round (* 255 (/ (- (world-slide-h w) 660) 480))) (world-c1g w)(world-c1b w))]
+;          (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) x (world-slide-v w) true (round (* 255 (/ (- (world-slide-h w) 660) 480))) (world-c1g w)(world-c1b w))]
+          (begin
+            (pstream-set-volume! ps (/ (- (world-slide-h w) 660) 480))
+            (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) x (world-slide-v w) true (world-c1r w)(world-c1g w)(world-c1b w))
+            )]
          [else 
           (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) (world-slide-h w) (world-slide-v w) true (world-c1r w)(world-c1g w)(world-c1b w))]
          )]
@@ -88,12 +90,18 @@
    [else w])
  )
 
-
-
+(define (key-handler w key)
+  (begin
+    (stop)
+    w
+    ))
 
 (pstream-queue ps SONG 0)
 (big-bang INITIAL-WORLD
          [on-tick tock]
          [to-draw draw]
          [on-mouse mouse-event]
+         [on-key key-handler]
          [state true])
+
+
