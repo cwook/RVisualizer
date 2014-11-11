@@ -7,40 +7,50 @@
 (require 2htdp/universe)
 (require racket/base)
 
-;(define SONG-LOCATION "C:/tmp/rct2theme.wav")
-(define SONG-LOCATION "songs/The Intro.wav")
+(define SONG-LOCATION "C:/tmp/rct2theme.wav")
+;(define SONG-LOCATION "songs/The Intro.wav")
 
-(define SONG (rs-read/clip SONG-LOCATION 0 (* 44100 120)))
+(define SONG (rs-read/clip SONG-LOCATION 0 (* 44100 10)))
+
+(define-struct world[t a c1now c1go])
+
+(define INITIAL-WORLD (make-world 0 0 300 300))
 
 (define ps (make-pstream))
 
 (define (both a b) b)
 
 (define (tock w)
-  (* 4 (abs (inexact->exact (rs-ith/left SONG (pstream-current-frame ps)))))
-  )
+  (cond
+    [(= 0 (remainder (world-t w) 5)) 
+     (begin
+       (print "0")
+     (make-world
+      (add1 (world-t w))
+      (abs (inexact->exact (rs-ith/left SONG (pstream-current-frame ps))))
+      (/ (+ (world-c1now w) (world-c1go w)) 2)
+      (* (world-a w) 300)))
+     ]
+    [else 
+     (begin
+       (print "1")
+     (make-world
+      (add1 (world-t w))
+      (abs (inexact->exact (rs-ith/left SONG (pstream-current-frame ps))))
+      (/ (+ (world-c1now w) (world-c1go w)) 2)
+      (world-c1go w)))
+     ]
+  ))
 
 (define (draw w)
   (place-image
-   (circle (* 30 w) "solid" (make-color (random 255) (random 255) (random 255)))
-   (random 600) 100
-   (place-image
-    (circle (* 120 w) "solid" (make-color (random 255) (random 255) (random 255)))
-    (random 600) 50
-    (place-image
-    (circle (* 45 w) "solid" (make-color (random 255) (random 255) (random 255)))
-    (random 600) 100
-     (place-image
-    (circle (* 180 w) "solid" (make-color (random 255) (random 255) (random 255)))
-    (random 600) 100
-    (place-image
-    (circle (* 20 w) "solid" (make-color (random 255) (random 255) (random 255)))
-    (random 600) 50
-   (empty-scene 600 200)))))))
-  
+   (circle (world-c1now w) "solid" (make-color 0 0 0))
+   600 200
+   (empty-scene 1200 400)))
+
 
 (pstream-queue ps SONG 0)
-(big-bang 0 [on-tick tock] [to-draw draw])
+(big-bang INITIAL-WORLD [on-tick tock] [to-draw draw] [state true])
 
 
 
