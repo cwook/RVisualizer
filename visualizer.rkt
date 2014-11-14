@@ -12,15 +12,14 @@
 (define SONG (rs-read/clip SONG-LOCATION 0 (* 44100 120)))
 
 (define-struct world[t a c1now c1go slide-h slide-v drag? c1r c1g c1b cframe])
-
-
+;; a world is (make-world Num Num Num X-coord Y-coord Boolean ColorR ColorG ColorB Current-Frame)
 
 (define ps (make-pstream))
 (define current-frame (pstream-current-frame ps))
+(define (both a b) b)
 
 (define INITIAL-WORLD (make-world 0 0 300 300 900 650 false 100 100 100 current-frame))
 
-(define (both a b) b)
 
 (define (tock w)
   (cond
@@ -62,17 +61,21 @@
         900 650
         (empty-scene 1200 720))))))))
 
-
+;; World X-coord Y-coord Mouse-Event -> World
 (define (mouse-event w x y event)
   (cond
+    ;; handles button events
     [(mouse=? event "button-down")
      (cond
-       [(and (and (> x (- 200 25)) (< x (+ 200 25))) (> y (- 650 25)) (< y (+ 650 25)));;stops
+       ;;stops pstream
+       [(and (and (> x (- 200 25)) (< x (+ 200 25))) (> y (- 650 25)) (< y (+ 650 25)))
         (begin (stop) (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) (world-slide-h w) (world-slide-v w) false (world-c1r w)(world-c1g w)(world-c1b w)(world-cframe w)))]
-       [(and (and (> x (- 100 25)) (< x (+ 100 25))) (> y (- 650 25)) (< y (+ 650 25)));;play
+       ;;play pstream
+       [(and (and (> x (- 100 25)) (< x (+ 100 25))) (> y (- 650 25)) (< y (+ 650 25)))
         (begin (stop) 
                (pstream-queue (make-pstream) (clip SONG (world-cframe w) (rs-frames SONG)) 0) w)]
        [else w])]
+    ;; makes drag? false when button is not held down
     [(mouse=? event "button-up")
      (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) (world-slide-h w) (world-slide-v w) false (world-c1r w)(world-c1g w)(world-c1b w)(world-cframe w))
      ]
@@ -89,6 +92,7 @@
           [else 
            (make-world (world-t w) (world-a w) (world-c1now w) (world-c1go w) (world-slide-h w) (world-slide-v w) true (world-c1r w)(world-c1g w)(world-c1b w)(world-cframe w))]
           )]
+       ;; When mouse is within the boundaries of a slider, then drag? is true
        [else 
         (cond
           [(and (> x (- 910 250)) (< x (+ 890 250)))
