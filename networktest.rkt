@@ -11,8 +11,9 @@
 (define SONG (rs-read/clip "/tmp/rct2theme.wav" (s 15) (s 45)))
 (define SONGLEN (rs-frames SONG))
 
-(define INT-WORLD 1.0)
+(define INT-WORLD 1)
 (define world-box (box INT-WORLD))
+(define cur-frame (box 0))
 
 ;; increment "old" by "incr", and wrap around if necessary
 ;; number number number -> number
@@ -25,18 +26,20 @@
 ;; a network that smoothly moves through a sound
 (define (flexloop len)
   (network (incr)
-           [ctr = (maybe-wrap 
+           [ctr = 
+                (+ (prev ctr 0) incr) ;; (* 10 44100) is where the ctr starts, aka the song start position in frames
+                #;(maybe-wrap 
                    (prev ctr 0)
                    incr
-                   len)]))
-
-(define (playing?)
-  (unbox world-box))
+                   len)
+                ]))
 
 (define (netwrk) 
   (network ()
-   [ctr <= (flexloop SONGLEN) (playing?)]
-   [out = (rs-ith/left SONG (floor ctr))]
+   [ctr <= (flexloop SONGLEN) (unbox world-box)]
+   [out = (begin
+            (set-box! cur-frame (floor ctr))
+            (rs-ith/left SONG (floor ctr)))]
    ))
 
 (signal-play (netwrk))
@@ -46,16 +49,23 @@
   (begin
     (set-box! world-box w)
     (overlay
-     (text (number->string (unbox world-box)) 16 "black")
-     (empty-scene 100 100))
-    ))
+     (above
+      (text (number->string (unbox world-box)) 16 "black")
+      (text (string-append "f: " (number->string (unbox cur-frame))) 16 "black"))
+     (circle (+ 10 (* 10 (rs-ith/left SONG (unbox cur-frame)))) "solid" "red")
+     (empty-scene 100 100)
+     )))
 
 (define (input w key)
-    (if (= w 1) 0.0 1.0)
+    (if (= w 1) 0 1)
+  )
+
+(define (tock w)
+  w
   )
 
 (big-bang INT-WORLD
           [to-draw draw]
           [on-key input]
-          [state true]
+          [on-tick tock]
           )
