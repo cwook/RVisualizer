@@ -10,9 +10,15 @@
 
 (define SONG (rs-read/clip "/tmp/rct2theme.wav" (s 15) (s 45)))
 (define SONGLEN (rs-frames SONG))
+(define ctr (box 5))
 
-(define INT-WORLD 1)
-(define world-box (box INT-WORLD))
+(define-struct world 
+  [p c1now c1go] ;; we should remove c1now and c1go at some point and implement an object list
+  )
+
+(define INT-WORLD (make-world 1 100 100))
+
+(define play-speed (box (world-p INT-WORLD)))
 (define cur-frame (box 0))
 
 ;; increment "old" by "incr", and wrap around if necessary
@@ -27,7 +33,7 @@
 (define (flexloop len)
   (network (incr)
            [ctr = 
-                (+ (prev ctr 0) incr) ;; (* 10 44100) is where the ctr starts, aka the song start position in frames
+                (+ (prev ctr 0) (unbox play-speed)) ;; in (prev ctr 0), "0" is where the ctr starts, aka the song start position in frames
                 #;(maybe-wrap 
                    (prev ctr 0)
                    incr
@@ -36,10 +42,10 @@
 
 (define (netwrk) 
   (network ()
-   [ctr <= (flexloop SONGLEN) (unbox world-box)]
+   [ctr <= (flexloop SONGLEN) (unbox play-speed)]
    [out = (begin
-            (set-box! cur-frame (floor ctr))
-            (rs-ith/left SONG (floor ctr)))]
+             (set-box! cur-frame (abs (inexact->exact (floor ctr))))
+            (* 1 (rs-ith/left SONG (floor ctr))))] ;; todo: make 1 a variable (determines volume)
    ))
 
 (signal-play (netwrk))
@@ -47,25 +53,34 @@
 
 (define (draw w)
   (begin
-    (set-box! world-box w)
+    (set-box! play-speed (world-p w))
     (overlay
      (above
-      (text (number->string (unbox world-box)) 16 "black")
+      (text (number->string (unbox play-speed)) 16 "black")
       (text (string-append "f: " (number->string (unbox cur-frame))) 16 "black"))
-     (circle (+ 10 (* 10 (rs-ith/left SONG (unbox cur-frame)))) "solid" "red")
-     (empty-scene 100 100)
+     (circle (world-c1now w) "solid" "red")
+     (empty-scene 1200 720)
      )))
 
 (define (input w key)
-    (if (= w 1) 0 1)
-  )
+    (if (= (world-p w) 1) 
+        (make-world 0 (world-c1now w) (world-c1go w)) 
+        (make-world 1 (world-c1now w) (world-c1go w))
+        ))
 
 (define (tock w)
-  w
-  )
+  (begin
+    (if (> (unbox ctr) 0)
+        (set-box! ctr (sub1 (unbox ctr)))
+        (set-box! ctr 3)
+        )
+  (if (= (unbox ctr) 0)
+      (make-world (world-p w) (abs (/ (+ (world-c1now w) (world-c1go w)) 2)) (+ 35 (* 150 (rs-ith/left SONG (unbox cur-frame)))))
+      (make-world (world-p w) (abs (/ (+ (world-c1now w) (world-c1go w)) 2)) (world-c1go w))
+  )))
 
 (big-bang INT-WORLD
           [to-draw draw]
           [on-key input]
-          [on-tick tock]
+          [on-tick tock 1/60]
           )
